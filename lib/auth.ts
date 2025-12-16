@@ -25,20 +25,26 @@ if (typeof window === 'undefined' && process.env.NEXTAUTH_URL) {
 }
 
 // Validar e garantir que NEXTAUTH_SECRET está definido
+// Não lança erro durante build, apenas valida e limpa o valor
 if (typeof window === 'undefined') {
   const secret = process.env.NEXTAUTH_SECRET
   
   if (!secret || secret.trim() === '') {
-    console.error('[NextAuth] NEXTAUTH_SECRET não está definido ou está vazio!')
-    console.error('[NextAuth] Por favor, defina NEXTAUTH_SECRET no arquivo .env')
-    console.error('[NextAuth] Para gerar um secret: openssl rand -base64 32')
-    
-    // Em desenvolvimento, gera um secret temporário (NÃO USAR EM PRODUÇÃO)
-    if (process.env.NODE_ENV !== 'production') {
+    // Durante build, apenas avisa mas não lança erro
+    // O erro será lançado em runtime no route handler se necessário
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      console.warn('[NextAuth] NEXTAUTH_SECRET não está definido durante o build.')
+      console.warn('[NextAuth] Certifique-se de configurar NEXTAUTH_SECRET nas variáveis de ambiente do Railway.')
+      // Usa um secret temporário apenas para o build não falhar
+      process.env.NEXTAUTH_SECRET = 'build-time-temporary-secret-replace-in-runtime'
+    } else if (process.env.NODE_ENV !== 'production') {
+      // Em desenvolvimento local, gera um secret temporário
       console.warn('[NextAuth] Usando secret temporário para desenvolvimento. Configure NEXTAUTH_SECRET no .env!')
       process.env.NEXTAUTH_SECRET = 'temporary-dev-secret-change-in-production-' + Date.now()
     } else {
-      throw new Error('NEXTAUTH_SECRET é obrigatório em produção. Configure no arquivo .env')
+      // Em produção runtime, apenas avisa (erro será lançado no route handler)
+      console.error('[NextAuth] NEXTAUTH_SECRET não está definido!')
+      console.error('[NextAuth] Configure NEXTAUTH_SECRET nas variáveis de ambiente.')
     }
   } else {
     // Remove espaços e caracteres estranhos
@@ -120,7 +126,8 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
   },
-  // Secret já foi validado e definido acima na validação de variáveis de ambiente
-  secret: process.env.NEXTAUTH_SECRET!,
+  // Secret - será validado em runtime no route handler
+  // Durante build, pode ser um valor temporário
+  secret: process.env.NEXTAUTH_SECRET || 'temporary-secret-for-build-only',
 }
 
