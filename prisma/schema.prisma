@@ -1,0 +1,111 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Configuração do seed (opcional)
+// Para executar: npm run db:seed
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Empresa (multi-tenant)
+model Empresa {
+  id        String   @id @default(cuid())
+  nome      String
+  cnpj      String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  usuarios        Usuario[]
+  perfilProspeccao PerfilProspeccao?
+  leads           Lead[]
+
+  @@map("empresas")
+}
+
+// Usuário (pertence a uma empresa)
+model Usuario {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  senha     String
+  nome      String
+  empresaId String
+  role      String   @default("usuario") // usuario, admin
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  onboardingCompleto Boolean @default(false)
+
+  @@map("usuarios")
+}
+
+// Perfil de Prospecção (ICP) - Configuração do cliente
+model PerfilProspeccao {
+  id        String   @id @default(cuid())
+  empresaId String  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Perguntas do onboarding
+  nicho              String   // Ex: "Clínicas", "Escritórios", "Imobiliárias"
+  tipoCliente        String   // "PF", "PJ", "Ambos"
+  cidades            String[] // Array de cidades
+  ticketMinimo       Float    // Valor mínimo em R$
+  precisaDecisor     Boolean  @default(false)
+  urgenciaMinima     String   // "Baixa", "Média", "Alta"
+  capacidadeDiaria   Int      // Quantos leads por dia
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@map("perfis_prospeccao")
+}
+
+// Lead (empresa prospectada)
+model Lead {
+  id        String   @id @default(cuid())
+  empresaId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Dados da empresa prospectada
+  nomeEmpresa    String
+  segmento      String
+  cidade         String
+  telefone       String? // Oculto até ativação
+  whatsapp       String? // Oculto até ativação
+  email          String?
+  cnpj           String?
+
+  // Status do lead
+  status         String   @default("prospectavel") // prospectavel, em_contato, qualificado, disponivel, ativado, descartado
+  score          Int?     // 0-100
+  classificacao  String?  // "frio", "morno", "quente"
+  urgencia       String?  // "Baixa", "Média", "Alta"
+  dorPrincipal   String?  // Dor identificada na conversa
+  resumoConversa String?  // Resumo textual da conversa
+  motivoDescarte String?  // Se descartado, motivo
+
+  // Controle de entrega
+  ativadoEm      DateTime?
+  ativadoPor     String?   // ID do usuário que ativou
+
+  // Histórico de conversa (JSON)
+  historicoConversa Json? // Array de mensagens
+
+  // Controle de duplicidade
+  entregueParaNicho String? // Para garantir que não seja entregue duas vezes no mesmo nicho
+  entregueParaCidade String? // Para garantir que não seja entregue duas vezes na mesma cidade
+
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@index([empresaId, status])
+  @@index([status, score])
+  @@map("leads")
+}
+
