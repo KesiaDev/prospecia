@@ -25,7 +25,22 @@ export default function LoginPage() {
       })
 
       if (result?.error) {
-        setErro("Email ou senha incorretos")
+        // Mensagens de erro mais específicas
+        let errorMessage = "Email ou senha incorretos"
+        
+        if (result.error.includes("banco") || result.error.includes("database")) {
+          errorMessage = "Erro de conexão com banco de dados. Verifique a configuração."
+        } else if (result.error.includes("configurado")) {
+          errorMessage = "Banco de dados não configurado. Contate o suporte."
+        }
+        
+        setErro(errorMessage)
+        setLoading(false)
+        return
+      }
+
+      if (!result?.ok) {
+        setErro("Erro ao fazer login. Tente novamente.")
         setLoading(false)
         return
       }

@@ -61,31 +61,61 @@ export const authOptions: NextAuthOptions = {
         senha: { label: "Senha", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.senha) {
+        try {
+          if (!credentials?.email || !credentials?.senha) {
+            console.error("[AUTH] Credenciais não fornecidas")
+            return null
+          }
+
+          // Verificar conexão com banco
+          if (!process.env.DATABASE_URL) {
+            console.error("[AUTH] DATABASE_URL não configurado")
+            throw new Error("Banco de dados não configurado")
+          }
+
+          let usuario
+          try {
+            usuario = await prisma.usuario.findUnique({
+              where: { email: credentials.email },
+              include: { empresa: true }
+            })
+          } catch (dbError: any) {
+            console.error("[AUTH] Erro ao buscar usuário:", {
+              code: dbError.code,
+              message: dbError.message
+            })
+            
+            if (dbError.code === 'P1001' || dbError.message?.includes('connect') || dbError.message?.includes('Can\'t reach')) {
+              throw new Error("Erro de conexão com banco de dados")
+            }
+            throw dbError
+          }
+
+          if (!usuario) {
+            console.warn("[AUTH] Usuário não encontrado:", credentials.email)
+            return null
+          }
+
+          const senhaValida = await bcrypt.compare(credentials.senha, usuario.senha)
+
+          if (!senhaValida) {
+            console.warn("[AUTH] Senha inválida para:", credentials.email)
+            return null
+          }
+
+          console.log("[AUTH] Login bem-sucedido para:", credentials.email)
+          return {
+            id: usuario.id,
+            email: usuario.email,
+            nome: usuario.nome,
+            empresaId: usuario.empresaId,
+            onboardingCompleto: usuario.onboardingCompleto,
+          }
+        } catch (error: any) {
+          console.error("[AUTH] Erro no authorize:", error)
+          // Retorna null para que o NextAuth trate como credenciais inválidas
+          // Mas loga o erro para debug
           return null
-        }
-
-        const usuario = await prisma.usuario.findUnique({
-          where: { email: credentials.email },
-          include: { empresa: true }
-        })
-
-        if (!usuario) {
-          return null
-        }
-
-        const senhaValida = await bcrypt.compare(credentials.senha, usuario.senha)
-
-        if (!senhaValida) {
-          return null
-        }
-
-        return {
-          id: usuario.id,
-          email: usuario.email,
-          nome: usuario.nome,
-          empresaId: usuario.empresaId,
-          onboardingCompleto: usuario.onboardingCompleto,
         }
       }
     })
