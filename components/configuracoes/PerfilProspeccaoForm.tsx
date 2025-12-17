@@ -185,6 +185,9 @@ export function PerfilProspeccaoForm({ perfil }: PerfilProspeccaoFormProps) {
           onChange={(e) => setFormData({ ...formData, ticketMinimo: e.target.value })}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
         />
+        <p className="text-xs text-gray-500 mt-1">
+          Critério de qualificação. A IA prospecta de forma ilimitada e filtra por este valor.
+        </p>
       </div>
 
       <div>
@@ -199,6 +202,9 @@ export function PerfilProspeccaoForm({ perfil }: PerfilProspeccaoFormProps) {
             O lead precisa ser decisor
           </span>
         </label>
+        <p className="text-xs text-gray-500 mt-1 ml-6">
+          Critério de qualificação. A IA identifica e qualifica leads conforme esta regra.
+        </p>
       </div>
 
       <div>
