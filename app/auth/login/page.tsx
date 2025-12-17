@@ -1,12 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { signIn } from "next-auth/react"
+import { signIn, useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 
 export default function LoginPage() {
   const router = useRouter()
+  const { data: session, update } = useSession()
   const [email, setEmail] = useState("")
   const [senha, setSenha] = useState("")
   const [erro, setErro] = useState("")
@@ -26,7 +27,7 @@ export default function LoginPage() {
         redirect: false,
       })
 
-      console.log("[LOGIN] Resultado completo do signIn:", JSON.stringify(result, null, 2))
+      console.log("[LOGIN] Resultado do signIn:", result)
 
       // Se houver erro explícito, mostra mensagem
       if (result?.error) {
@@ -44,16 +45,52 @@ export default function LoginPage() {
         return
       }
 
-      // Se não houver erro, assume sucesso e redireciona
-      // O NextAuth pode retornar undefined ou { ok: true } quando bem-sucedido
-      console.log("[LOGIN] Nenhum erro detectado, assumindo login bem-sucedido")
-      console.log("[LOGIN] Redirecionando imediatamente...")
+      // Se não houver erro, assume sucesso
+      // O NextAuth retorna undefined quando bem-sucedido com redirect: false
+      console.log("[LOGIN] Login bem-sucedido!")
 
-      // Força redirecionamento usando window.location
-      // Isso garante que a página seja recarregada completamente
-      setTimeout(() => {
-        window.location.href = "/onboarding"
-      }, 50)
+      // Aguarda um pouco para o cookie de sessão ser criado
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Atualiza a sessão do cliente
+      try {
+        await update()
+        console.log("[LOGIN] Sessão atualizada no cliente")
+      } catch (updateError) {
+        console.warn("[LOGIN] Erro ao atualizar sessão:", updateError)
+      }
+
+      // Verifica a sessão no servidor
+      try {
+        const sessionResponse = await fetch("/api/auth/session", {
+          method: "GET",
+          cache: "no-store",
+          credentials: "include",
+        })
+        
+        if (sessionResponse.ok) {
+          const sessionData = await sessionResponse.json()
+          console.log("[LOGIN] Sessão no servidor:", sessionData?.user ? "OK" : "NÃO ENCONTRADA")
+          
+          if (sessionData?.user) {
+            console.log("[LOGIN] Usuário autenticado:", sessionData.user.email)
+          }
+        }
+      } catch (sessionError) {
+        console.warn("[LOGIN] Erro ao verificar sessão:", sessionError)
+      }
+
+      console.log("[LOGIN] Redirecionando para /onboarding...")
+
+      // Força redirecionamento completo usando window.location
+      // Isso recarrega a página e permite que o middleware verifique a sessão
+      if (typeof window !== "undefined") {
+        // Usa replace para não adicionar ao histórico
+        window.location.replace("/onboarding")
+      } else {
+        router.push("/onboarding")
+        router.refresh()
+      }
 
     } catch (error: any) {
       console.error("[LOGIN] Erro geral no login:", error)
