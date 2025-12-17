@@ -9,7 +9,7 @@ const TOTAL_STEPS = 7
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { data: session, status, update } = useSession()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState("")
@@ -121,9 +121,15 @@ export default function OnboardingPage() {
         return
       }
 
-      // Força reload completo para atualizar a sessão com dados do banco
-      // O middleware vai verificar o onboardingCompleto atualizado
-      window.location.href = "/dashboard"
+      // Atualiza a sessão para refletir que o onboarding foi concluído
+      try {
+        await update()
+      } catch (updateError) {
+        console.warn("[ONBOARDING] Erro ao atualizar sessão:", updateError)
+      }
+
+      // Redireciona para o dashboard
+      router.push("/dashboard")
     } catch (error) {
       setErro("Erro ao salvar. Tente novamente.")
       setLoading(false)
