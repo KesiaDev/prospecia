@@ -40,35 +40,6 @@ export async function POST(request: Request) {
       )
     }
 
-    // Verifica limite diário
-    const perfil = await prisma.perfilProspeccao.findUnique({
-      where: { empresaId: session.user.empresaId },
-    })
-
-    if (perfil) {
-      const hoje = new Date()
-      hoje.setHours(0, 0, 0, 0)
-
-      const ativadosHoje = await prisma.lead.count({
-        where: {
-          empresaId: session.user.empresaId,
-          status: "ativado",
-          ativadoEm: {
-            gte: hoje,
-          },
-        },
-      })
-
-      if (ativadosHoje + leadIds.length > perfil.capacidadeDiaria) {
-        return NextResponse.json(
-          {
-            error: `Limite diário excedido. Você pode ativar ${perfil.capacidadeDiaria - ativadosHoje} lead(s) hoje.`,
-          },
-          { status: 400 }
-        )
-      }
-    }
-
     // Ativa os leads
     await prisma.lead.updateMany({
       where: {
@@ -93,4 +64,5 @@ export async function POST(request: Request) {
     )
   }
 }
+
 

@@ -223,3 +223,4 @@ npm run db:studio    # Abrir Prisma Studio
 
 Para dúvidas sobre integração com n8n, consulte `docs/INTEGRACAO_N8N.md`.
 
+

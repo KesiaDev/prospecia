@@ -22,11 +22,10 @@ export async function POST(request: Request) {
       ticketMinimo,
       precisaDecisor,
       urgenciaMinima,
-      capacidadeDiaria,
     } = body
 
     // Validações
-    if (!nicho || !tipoCliente || !cidades || cidades.length === 0 || !ticketMinimo || !urgenciaMinima || !capacidadeDiaria) {
+    if (!nicho || !tipoCliente || !cidades || cidades.length === 0 || !ticketMinimo || !urgenciaMinima) {
       return NextResponse.json(
         { error: "Todos os campos são obrigatórios" },
         { status: 400 }
@@ -43,7 +42,6 @@ export async function POST(request: Request) {
         ticketMinimo,
         precisaDecisor,
         urgenciaMinima,
-        capacidadeDiaria,
       },
       create: {
         empresaId: session.user.empresaId,
@@ -53,7 +51,6 @@ export async function POST(request: Request) {
         ticketMinimo,
         precisaDecisor,
         urgenciaMinima,
-        capacidadeDiaria,
       },
     })
 
@@ -75,4 +72,5 @@ export async function POST(request: Request) {
     )
   }
 }
+
 

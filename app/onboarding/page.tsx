@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { OnboardingStep } from "@/components/onboarding/OnboardingStep"
 
-const TOTAL_STEPS = 7
+const TOTAL_STEPS = 6
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -32,7 +32,6 @@ export default function OnboardingPage() {
     ticketMinimo: "",
     precisaDecisor: false,
     urgenciaMinima: "",
-    capacidadeDiaria: "",
   })
 
   const [cidadeInput, setCidadeInput] = useState("")
@@ -96,11 +95,6 @@ export default function OnboardingPage() {
       setLoading(false)
       return
     }
-    if (!formData.capacidadeDiaria || parseInt(formData.capacidadeDiaria) <= 0) {
-      setErro("Informe a capacidade diária")
-      setLoading(false)
-      return
-    }
 
     try {
       const response = await fetch("/api/onboarding", {
@@ -109,7 +103,6 @@ export default function OnboardingPage() {
         body: JSON.stringify({
           ...formData,
           ticketMinimo: parseFloat(formData.ticketMinimo),
-          capacidadeDiaria: parseInt(formData.capacidadeDiaria),
         }),
       })
 
@@ -301,28 +294,6 @@ export default function OnboardingPage() {
                   <span className="font-medium">{urgencia}</span>
                 </label>
               ))}
-            </div>
-          </OnboardingStep>
-        )
-
-      case 7:
-        return (
-          <OnboardingStep step={7} totalSteps={TOTAL_STEPS} title="Quantos leads por dia consegue atender?">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Capacidade diária de leads
-              </label>
-              <input
-                type="number"
-                min="1"
-                value={formData.capacidadeDiaria}
-                onChange={(e) => setFormData({ ...formData, capacidadeDiaria: e.target.value })}
-                placeholder="10"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-lg"
-              />
-              <p className="mt-2 text-sm text-gray-500">
-                Este limite será respeitado ao ativar leads
-              </p>
             </div>
           </OnboardingStep>
         )

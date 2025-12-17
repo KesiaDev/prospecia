@@ -61,3 +61,4 @@ npm run db:generate
 2. Verifique a `DATABASE_URL` no `.env`
 3. Teste a conexão: `psql $DATABASE_URL`
 
+

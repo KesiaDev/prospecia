@@ -173,3 +173,4 @@ Para mais informações:
 - Integração n8n: `docs/INTEGRACAO_N8N.md`
 - README principal: `README.md`
 
+

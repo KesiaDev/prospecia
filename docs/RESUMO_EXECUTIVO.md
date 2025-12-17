@@ -244,3 +244,4 @@ A plataforma ProspecIA está **100% funcional** para o MVP, com todas as funcion
 - ✅ Deploy em produção
 - ✅ Expansão futura
 
+

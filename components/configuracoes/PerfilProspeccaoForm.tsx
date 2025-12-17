@@ -12,7 +12,6 @@ interface PerfilProspeccao {
   ticketMinimo: number
   precisaDecisor: boolean
   urgenciaMinima: string
-  capacidadeDiaria: number
 }
 
 interface PerfilProspeccaoFormProps {
@@ -32,7 +31,6 @@ export function PerfilProspeccaoForm({ perfil }: PerfilProspeccaoFormProps) {
     ticketMinimo: perfil.ticketMinimo.toString(),
     precisaDecisor: perfil.precisaDecisor,
     urgenciaMinima: perfil.urgenciaMinima,
-    capacidadeDiaria: perfil.capacidadeDiaria.toString(),
   })
 
   const [cidadeInput, setCidadeInput] = useState("")
@@ -67,7 +65,6 @@ export function PerfilProspeccaoForm({ perfil }: PerfilProspeccaoFormProps) {
         body: JSON.stringify({
           ...formData,
           ticketMinimo: parseFloat(formData.ticketMinimo),
-          capacidadeDiaria: parseInt(formData.capacidadeDiaria),
         }),
       })
 
@@ -219,19 +216,6 @@ export function PerfilProspeccaoForm({ perfil }: PerfilProspeccaoFormProps) {
         </select>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Capacidade Diária de Leads
-        </label>
-        <input
-          type="number"
-          min="1"
-          value={formData.capacidadeDiaria}
-          onChange={(e) => setFormData({ ...formData, capacidadeDiaria: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-        />
-      </div>
-
       <button
         type="submit"
         disabled={loading}
@@ -242,4 +226,5 @@ export function PerfilProspeccaoForm({ perfil }: PerfilProspeccaoFormProps) {
     </form>
   )
 }
+
 

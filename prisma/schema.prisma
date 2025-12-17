@@ -59,7 +59,6 @@ model PerfilProspeccao {
   ticketMinimo       Float    // Valor mínimo em R$
   precisaDecisor     Boolean  @default(false)
   urgenciaMinima     String   // "Baixa", "Média", "Alta"
-  capacidadeDiaria   Int      // Quantos leads por dia
 
   empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
 

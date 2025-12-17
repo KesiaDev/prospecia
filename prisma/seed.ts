@@ -46,7 +46,6 @@ async function main() {
       ticketMinimo: 5000.00,
       precisaDecisor: true,
       urgenciaMinima: 'Média',
-      capacidadeDiaria: 10,
     },
   })
 
@@ -127,4 +126,5 @@ main()
   .finally(async () => {
     await prisma.$disconnect()
   })
+
 

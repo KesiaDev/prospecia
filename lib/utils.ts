@@ -33,3 +33,4 @@ export function getClassificacaoColor(classificacao: string | null): string {
   return colors[classificacao || ""] || "bg-gray-100 text-gray-800"
 }
 
+

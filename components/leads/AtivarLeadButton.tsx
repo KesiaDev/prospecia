@@ -67,3 +67,4 @@ export function AtivarLeadButton({ leadIds, onSuccess }: AtivarLeadButtonProps) 
   )
 }
 
+
