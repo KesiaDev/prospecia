@@ -2,89 +2,89 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
 /**
- * Webhook para receber dados do n8n após qualificação de lead via WhatsApp
+ * Webhook para receber dados de leads do n8n
  * 
- * Este endpoint é chamado pelo n8n quando:
- * 1. Um lead foi contatado via WhatsApp
- * 2. A conversa foi processada pela IA
- * 3. O lead foi qualificado ou descartado
+ * Endpoint mínimo que recebe dados de um lead e salva no banco
  * 
  * Payload esperado:
  * {
- *   leadId: string,
- *   empresaId: string,
- *   status: "qualificado" | "disponivel" | "descartado",
- *   score: number (0-100),
- *   classificacao: "frio" | "morno" | "quente",
- *   urgencia: "Baixa" | "Média" | "Alta",
+ *   empresaId: string (obrigatório),
+ *   nomeEmpresa: string (obrigatório),
+ *   segmento: string (obrigatório),
+ *   cidade: string (obrigatório),
+ *   telefone?: string,
+ *   whatsapp?: string,
+ *   email?: string,
+ *   score?: number,
+ *   classificacao?: string,
+ *   urgencia?: string,
  *   dorPrincipal?: string,
  *   resumoConversa?: string,
- *   motivoDescarte?: string,
- *   historicoConversa?: Array<{tipo: "enviada" | "recebida", mensagem: string, timestamp: string}>
+ *   status?: string (default: "prospectavel")
  * }
  */
 export async function POST(request: Request) {
   try {
     const body = await request.json()
+    
     const {
-      leadId,
       empresaId,
-      status,
+      nomeEmpresa,
+      segmento,
+      cidade,
+      telefone,
+      whatsapp,
+      email,
       score,
       classificacao,
       urgencia,
       dorPrincipal,
       resumoConversa,
-      motivoDescarte,
-      historicoConversa,
+      status,
     } = body
 
-    // Validações básicas
-    if (!leadId || !empresaId || !status) {
+    // Validações básicas dos campos obrigatórios
+    if (!empresaId || !nomeEmpresa || !segmento || !cidade) {
       return NextResponse.json(
-        { error: "leadId, empresaId e status são obrigatórios" },
+        { error: "empresaId, nomeEmpresa, segmento e cidade são obrigatórios" },
         { status: 400 }
       )
     }
 
-    // Verifica se o lead existe e pertence à empresa
-    const lead = await prisma.lead.findFirst({
-      where: {
-        id: leadId,
+    // Cria o lead no banco
+    const lead = await prisma.lead.create({
+      data: {
         empresaId,
+        nomeEmpresa,
+        segmento,
+        cidade,
+        telefone: telefone || null,
+        whatsapp: whatsapp || null,
+        email: email || null,
+        score: score !== undefined ? score : null,
+        classificacao: classificacao || null,
+        urgencia: urgencia || null,
+        dorPrincipal: dorPrincipal || null,
+        resumoConversa: resumoConversa || null,
+        status: status || "prospectavel",
       },
     })
 
-    if (!lead) {
-      return NextResponse.json(
-        { error: "Lead não encontrado" },
-        { status: 404 }
-      )
-    }
-
-    // Atualiza o lead com os dados da qualificação
-    const updateData: any = {
-      status,
-      score: score !== undefined ? score : null,
-      classificacao: classificacao || null,
-      urgencia: urgencia || null,
-      dorPrincipal: dorPrincipal || null,
-      resumoConversa: resumoConversa || null,
-      motivoDescarte: motivoDescarte || null,
-      historicoConversa: historicoConversa ? historicoConversa : null,
-    }
-
-    await prisma.lead.update({
-      where: { id: leadId },
-      data: updateData,
-    })
-
     return NextResponse.json(
-      { message: "Lead atualizado com sucesso", leadId },
+      { success: true, leadId: lead.id },
       { status: 200 }
     )
-  } catch (error) {
-    console.error("Erro ao processar webhook do n8n:", error)
+  } catch (error: any) {
+    console.error("[WEBHOOK N8N] Erro ao processar webhook:", error)
+    
+    // Log detalhado do erro para debug
+    if (error.code) {
+      console.error("[WEBHOOK N8N] Código do erro:", error.code)
+    }
+    if (error.message) {
+      console.error("[WEBHOOK N8N] Mensagem do erro:", error.message)
+    }
+    
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }
