@@ -52,24 +52,30 @@ export interface ConversationAnalysis {
 
 /**
  * Gera insights contextuais automáticos baseados nos dados do dashboard
+ * Foca em eficiência da IA, pontos de atenção e oportunidades de melhoria
  */
 export async function generateDashboardInsights(empresaId: string): Promise<Insight[]> {
   const insights: Insight[] = []
 
-  // Busca dados atuais
+  // Busca dados atuais e métricas adicionais para análise estratégica
   const [
     emProspeccao,
-    emQualificacao,
+    emContato,
+    qualificado,
     qualificadosDisponiveis,
     ativadosHoje,
     totalAtivados,
     leadsDescartados,
+    leadsComScore,
   ] = await Promise.all([
     prisma.lead.count({
       where: { empresaId, status: "prospectavel" },
     }),
     prisma.lead.count({
-      where: { empresaId, status: { in: ["em_contato", "qualificado"] } },
+      where: { empresaId, status: "em_contato" },
+    }),
+    prisma.lead.count({
+      where: { empresaId, status: "qualificado" },
     }),
     prisma.lead.count({
       where: { empresaId, status: "disponivel" },
@@ -87,75 +93,181 @@ export async function generateDashboardInsights(empresaId: string): Promise<Insi
     prisma.lead.count({
       where: { empresaId, status: "descartado" },
     }),
+    prisma.lead.count({
+      where: {
+        empresaId,
+        score: { not: null },
+      },
+    }),
   ])
 
-  // Insight: Leads disponíveis para ativação
-  if (qualificadosDisponiveis > 0) {
+  const emQualificacao = emContato + qualificado
+  const totalProcessado = totalAtivados + leadsDescartados
+
+  // ===== ANÁLISE DE EFICIÊNCIA DA IA =====
+  
+  // Eficiência da IA: taxa de qualificação vs descarte
+  if (totalProcessado > 0) {
+    const eficienciaIA = ((totalAtivados / totalProcessado) * 100)
+    
+    if (eficienciaIA >= 70) {
+      insights.push({
+        type: "success",
+        title: "Alta eficiência da IA",
+        message: `${eficienciaIA.toFixed(0)}% dos leads processados foram qualificados. A automação está funcionando bem.`,
+      })
+    } else if (eficienciaIA < 50 && totalProcessado > 10) {
+      insights.push({
+        type: "warning",
+        title: "Eficiência da IA abaixo do esperado",
+        message: `${eficienciaIA.toFixed(0)}% de qualificação. Considere ajustar os critérios de prospecção.`,
+        action: "Ver Funil",
+        actionUrl: "/funil",
+      })
+    }
+  }
+
+  // ===== IDENTIFICAÇÃO DE GARGALOS =====
+
+  // Gargalo: Alto volume em prospecção com poucos em contato
+  if (emProspeccao > 20 && emContato < 5) {
     insights.push({
-      type: "success",
-      title: `${qualificadosDisponiveis} lead(s) qualificado(s) aguardando ativação`,
-      message: `Você tem leads prontos para contato. Ative-os para iniciar o relacionamento.`,
+      type: "warning",
+      title: "Gargalo na etapa de contato",
+      message: `${emProspeccao} leads aguardando, mas apenas ${emContato} em contato. A IA pode estar sobrecarregada ou com baixa taxa de conversão inicial.`,
+      action: "Ver Funil",
+      actionUrl: "/funil",
+    })
+  }
+
+  // Gargalo: Muitos em contato, poucos qualificados
+  if (emContato > 10 && qualificado < emContato * 0.3) {
+    const taxaConversao = emContato > 0 ? ((qualificado / emContato) * 100).toFixed(0) : "0"
+    insights.push({
+      type: "warning",
+      title: "Baixa conversão em qualificação",
+      message: `${taxaConversao}% dos leads em contato estão sendo qualificados. Pode indicar necessidade de ajuste no fluxo de conversação.`,
+      action: "Ver Relatórios",
+      actionUrl: "/relatorios",
+    })
+  }
+
+  // Gargalo: Muitos qualificados disponíveis, poucos ativados
+  if (qualificadosDisponiveis > 10 && ativadosHoje === 0) {
+    insights.push({
+      type: "info",
+      title: "Oportunidade de ativação",
+      message: `${qualificadosDisponiveis} leads qualificados aguardando. Ative-os para acelerar o processo comercial.`,
       action: "Ver Leads",
       actionUrl: "/leads",
     })
   }
 
-  // Insight: Taxa de ativação hoje
-  if (ativadosHoje > 0) {
-    const taxaAtivacao = qualificadosDisponiveis > 0 
-      ? ((ativadosHoje / (qualificadosDisponiveis + ativadosHoje)) * 100).toFixed(1)
-      : "100"
+  // ===== PADRÕES E OPORTUNIDADES =====
+
+  // Padrão: Alta automação com baixa conversão
+  if (emProspeccao > 50 && emQualificacao > 20 && totalAtivados < 5) {
+    insights.push({
+      type: "warning",
+      title: "Alta automação, baixa conversão",
+      message: "Muitos leads sendo processados, mas poucos ativados. Pode haver gargalo comercial ou necessidade de melhor qualificação.",
+      action: "Ver Relatórios",
+      actionUrl: "/relatorios",
+    })
+  }
+
+  // Padrão: Boa escalabilidade (alto volume processando)
+  if (emProspeccao > 30 && emQualificacao > 10) {
+    insights.push({
+      type: "success",
+      title: "Boa escalabilidade operacional",
+      message: `${emProspeccao + emQualificacao} leads em processamento simultâneo. A IA está operando em escala.`,
+    })
+  }
+
+  // ===== INSIGHTS CONTEXTUAIS SIMPLES =====
+
+  // Leads disponíveis para ativação (prioritário)
+  if (qualificadosDisponiveis > 0) {
+    insights.push({
+      type: "success",
+      title: `${qualificadosDisponiveis} lead(s) pronto(s) para ativação`,
+      message: "Leads qualificados aguardando seu contato.",
+      action: "Ativar Agora",
+      actionUrl: "/leads",
+    })
+  }
+
+  // Taxa de ativação hoje (se relevante)
+  if (ativadosHoje > 0 && qualificadosDisponiveis > 0) {
+    const taxaAtivacao = ((ativadosHoje / (qualificadosDisponiveis + ativadosHoje)) * 100).toFixed(0)
+    if (parseFloat(taxaAtivacao) < 30) {
+      insights.push({
+        type: "info",
+        title: "Taxa de ativação hoje: " + taxaAtivacao + "%",
+        message: "Ainda há leads disponíveis para ativação.",
+      })
+    }
+  }
+
+  // Score médio (se houver dados suficientes)
+  if (leadsComScore > 5) {
+    const leadsComDados = await prisma.lead.findMany({
+      where: {
+        empresaId,
+        score: { not: null },
+      },
+      select: { score: true },
+      take: 100,
+    })
     
-    insights.push({
-      type: "info",
-      title: `${ativadosHoje} lead(s) ativado(s) hoje`,
-      message: `Taxa de ativação: ${taxaAtivacao}% dos leads disponíveis.`,
-    })
-  }
+    const scores = leadsComDados.map(l => l.score as number)
+    const scoreMedio = scores.reduce((a, b) => a + b, 0) / scores.length
 
-  // Insight: Alto volume em prospecção
-  if (emProspeccao > 50) {
-    insights.push({
-      type: "info",
-      title: "Alto volume de leads em prospecção",
-      message: `${emProspeccao} leads aguardando qualificação. A IA está processando em escala.`,
-    })
-  }
-
-  // Insight: Leads em qualificação
-  if (emQualificacao > 0) {
-    insights.push({
-      type: "info",
-      title: `${emQualificacao} lead(s) em processo de qualificação`,
-      message: "A IA está em contato ativo com esses leads. Resultados em breve.",
-    })
-  }
-
-  // Insight: Taxa de descarte
-  if (leadsDescartados > 0 && totalAtivados > 0) {
-    const taxaDescarte = ((leadsDescartados / (totalAtivados + leadsDescartados)) * 100).toFixed(1)
-    
-    if (parseFloat(taxaDescarte) > 30) {
+    if (scoreMedio >= 70) {
+      insights.push({
+        type: "success",
+        title: "Score médio alto",
+        message: `Score médio de ${scoreMedio.toFixed(0)} indica boa qualidade dos leads qualificados.`,
+      })
+    } else if (scoreMedio < 50 && leadsComScore > 10) {
       insights.push({
         type: "warning",
-        title: "Taxa de descarte acima de 30%",
-        message: `${taxaDescarte}% dos leads foram descartados. Considere revisar os critérios de qualificação.`,
+        title: "Score médio baixo",
+        message: `Score médio de ${scoreMedio.toFixed(0)} sugere necessidade de melhorar a qualificação.`,
+        action: "Ver Relatórios",
+        actionUrl: "/relatorios",
+      })
+    }
+  }
+
+  // ===== ALERTAS CRÍTICOS =====
+
+  // Sistema parado
+  if (qualificadosDisponiveis === 0 && emQualificacao === 0 && emProspeccao === 0 && totalAtivados === 0) {
+    insights.push({
+      type: "alert",
+      title: "Nenhum lead em processo",
+      message: "Sistema sem atividade. Verifique a integração de prospecção.",
+    })
+  }
+
+  // Taxa de descarte muito alta
+  if (leadsDescartados > 0 && totalProcessado > 10) {
+    const taxaDescarte = ((leadsDescartados / totalProcessado) * 100)
+    if (taxaDescarte > 50) {
+      insights.push({
+        type: "warning",
+        title: "Taxa de descarte elevada",
+        message: `${taxaDescarte.toFixed(0)}% dos leads foram descartados. Revise os critérios de qualificação.`,
         action: "Ver Configurações",
         actionUrl: "/configuracoes",
       })
     }
   }
 
-  // Insight: Sem leads disponíveis
-  if (qualificadosDisponiveis === 0 && emQualificacao === 0 && emProspeccao === 0) {
-    insights.push({
-      type: "alert",
-      title: "Nenhum lead em processo",
-      message: "Não há leads sendo processados no momento. Verifique a integração com o sistema de prospecção.",
-    })
-  }
-
-  return insights
+  // Limita a 5 insights mais relevantes para manter visual limpo
+  return insights.slice(0, 5)
 }
 
 /**
