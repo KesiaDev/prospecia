@@ -26,11 +26,11 @@ export default function LoginPage() {
         redirect: false,
       })
 
-      console.log("[LOGIN] Resultado do signIn:", result)
+      console.log("[LOGIN] Resultado completo do signIn:", JSON.stringify(result, null, 2))
 
+      // Se houver erro explícito, mostra mensagem
       if (result?.error) {
         console.error("[LOGIN] Erro no signIn:", result.error)
-        // Mensagens de erro mais específicas
         let errorMessage = "Email ou senha incorretos"
         
         if (result.error.includes("banco") || result.error.includes("database")) {
@@ -44,46 +44,17 @@ export default function LoginPage() {
         return
       }
 
-      if (!result || result.error) {
-        console.error("[LOGIN] Resultado inválido ou com erro:", result)
-        setErro("Email ou senha incorretos")
-        setLoading(false)
-        return
-      }
+      // Se não houver erro, assume sucesso e redireciona
+      // O NextAuth pode retornar undefined ou { ok: true } quando bem-sucedido
+      console.log("[LOGIN] Nenhum erro detectado, assumindo login bem-sucedido")
+      console.log("[LOGIN] Redirecionando imediatamente...")
 
-      // Verifica se o login foi bem-sucedido
-      if (result.ok === false || result.error) {
-        console.error("[LOGIN] Login falhou:", result)
-        setErro("Email ou senha incorretos")
-        setLoading(false)
-        return
-      }
-
-      console.log("[LOGIN] Login bem-sucedido, aguardando sessão...")
-
-      // Aguarda um pouco para garantir que a sessão seja criada
-      await new Promise(resolve => setTimeout(resolve, 100))
-
-      // Verifica se a sessão foi criada
-      try {
-        const sessionCheck = await fetch("/api/auth/session")
-        const session = await sessionCheck.json()
-        console.log("[LOGIN] Sessão verificada:", session?.user ? "OK" : "NÃO ENCONTRADA")
-      } catch (sessionError) {
-        console.warn("[LOGIN] Erro ao verificar sessão, mas continuando:", sessionError)
-      }
-
-      console.log("[LOGIN] Redirecionando para /onboarding...")
-
-      // Login bem-sucedido - redireciona diretamente
-      // O middleware vai verificar onboarding e redirecionar se necessário
-      // Usa window.location para garantir redirecionamento completo
-      if (typeof window !== "undefined") {
+      // Força redirecionamento usando window.location
+      // Isso garante que a página seja recarregada completamente
+      setTimeout(() => {
         window.location.href = "/onboarding"
-      } else {
-        router.push("/onboarding")
-        router.refresh()
-      }
+      }, 50)
+
     } catch (error: any) {
       console.error("[LOGIN] Erro geral no login:", error)
       setErro("Erro ao fazer login. Tente novamente.")
