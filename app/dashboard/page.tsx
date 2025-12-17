@@ -3,7 +3,9 @@ import { authOptions } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { prisma } from "@/lib/prisma"
-import { Users, Clock, CheckCircle, TrendingUp } from "lucide-react"
+import { Users, Clock, CheckCircle, TrendingUp, Lightbulb, AlertTriangle, Info } from "lucide-react"
+import { generateDashboardInsights } from "@/lib/insights"
+import Link from "next/link"
 
 async function getDashboardData(empresaId: string) {
   const [
@@ -61,6 +63,7 @@ export default async function DashboardPage() {
   }
 
   const data = await getDashboardData(session.user.empresaId)
+  const insights = await generateDashboardInsights(session.user.empresaId)
 
   const cards = [
     {
@@ -124,6 +127,61 @@ export default async function DashboardPage() {
             </div>
           ))}
         </div>
+
+        {insights.length > 0 && (
+          <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+            <div className="flex items-center gap-2 mb-4">
+              <Lightbulb className="h-5 w-5 text-yellow-500" />
+              <h2 className="text-xl font-bold text-gray-900">
+                Insights Automáticos
+              </h2>
+            </div>
+            <div className="space-y-3">
+              {insights.map((insight, index) => {
+                const iconMap = {
+                  success: CheckCircle,
+                  warning: AlertTriangle,
+                  info: Info,
+                  alert: AlertTriangle,
+                }
+                const colorMap = {
+                  success: "bg-green-50 border-green-200 text-green-900",
+                  warning: "bg-yellow-50 border-yellow-200 text-yellow-900",
+                  info: "bg-blue-50 border-blue-200 text-blue-900",
+                  alert: "bg-red-50 border-red-200 text-red-900",
+                }
+                const Icon = iconMap[insight.type]
+                const colors = colorMap[insight.type]
+
+                return (
+                  <div
+                    key={index}
+                    className={`flex items-start p-4 border rounded-lg ${colors}`}
+                  >
+                    <Icon className={`h-5 w-5 mr-3 mt-0.5 ${
+                      insight.type === "success" ? "text-green-600" :
+                      insight.type === "warning" ? "text-yellow-600" :
+                      insight.type === "info" ? "text-blue-600" :
+                      "text-red-600"
+                    }`} />
+                    <div className="flex-1">
+                      <p className="font-medium mb-1">{insight.title}</p>
+                      <p className="text-sm opacity-90">{insight.message}</p>
+                      {insight.action && insight.actionUrl && (
+                        <Link
+                          href={insight.actionUrl}
+                          className="inline-block mt-2 text-sm font-medium underline hover:opacity-80"
+                        >
+                          {insight.action} →
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
           <h2 className="text-xl font-bold text-gray-900 mb-4">

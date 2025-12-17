@@ -54,6 +54,8 @@ export const config = {
   matcher: [
     "/dashboard/:path*",
     "/leads/:path*",
+    "/funil/:path*",
+    "/relatorios/:path*",
     "/configuracoes/:path*",
     "/onboarding/:path*",
     "/auth/:path*",
