@@ -4,6 +4,26 @@ import bcrypt from "bcryptjs"
 
 export async function POST(request: Request) {
   try {
+    // Verificar se DATABASE_URL está configurado
+    if (!process.env.DATABASE_URL) {
+      console.error("[REGISTRO] DATABASE_URL não está configurado")
+      return NextResponse.json(
+        { error: "Banco de dados não configurado. Configure DATABASE_URL nas variáveis de ambiente." },
+        { status: 503 }
+      )
+    }
+
+    // Testar conexão com banco antes de processar
+    try {
+      await prisma.$connect()
+    } catch (connectError: any) {
+      console.error("[REGISTRO] Erro ao conectar com banco:", connectError)
+      return NextResponse.json(
+        { error: "Erro de conexão com o banco de dados. Verifique se o PostgreSQL está configurado e acessível." },
+        { status: 503 }
+      )
+    }
+
     const body = await request.json()
     const { nome, email, senha, nomeEmpresa, cnpj } = body
 
@@ -87,7 +107,12 @@ export async function POST(request: Request) {
         { status: 201 }
       )
     } catch (createError: any) {
-      console.error("Erro ao criar empresa/usuário:", createError)
+      console.error("[REGISTRO] Erro ao criar empresa/usuário:", {
+        code: createError.code,
+        message: createError.message,
+        meta: createError.meta,
+        stack: createError.stack
+      })
       
       // Erros específicos do Prisma
       if (createError.code === 'P2002') {
@@ -111,9 +136,17 @@ export async function POST(request: Request) {
         )
       }
 
-      if (createError.code === 'P1001' || createError.message?.includes('connect')) {
+      if (createError.code === 'P1001' || createError.message?.includes('connect') || createError.message?.includes('Can\'t reach database')) {
         return NextResponse.json(
-          { error: "Erro de conexão com o banco de dados. Verifique se o banco está configurado e acessível." },
+          { error: "Erro de conexão com o banco de dados. Verifique se o PostgreSQL está configurado e acessível." },
+          { status: 503 }
+        )
+      }
+
+      // Erro de tabela não encontrada (schema não aplicado)
+      if (createError.code === 'P2021' || createError.message?.includes('does not exist') || createError.message?.includes('relation') || createError.message?.includes('table')) {
+        return NextResponse.json(
+          { error: "Tabelas do banco de dados não foram criadas. Execute as migrations do Prisma." },
           { status: 503 }
         )
       }
@@ -125,10 +158,8 @@ export async function POST(request: Request) {
         )
       }
 
-      // Erro genérico com mais detalhes em desenvolvimento
-      const errorMessage = process.env.NODE_ENV === 'production'
-        ? "Erro ao criar conta. Tente novamente."
-        : createError.message || "Erro interno do servidor"
+      // Erro genérico - sempre mostra detalhes em logs, mas mensagem genérica para usuário
+      const errorMessage = "Erro ao criar conta. Verifique os logs do servidor para mais detalhes."
 
       return NextResponse.json(
         { error: errorMessage },
