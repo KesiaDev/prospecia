@@ -306,6 +306,11 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 py-12">
       <div className="container mx-auto px-4">
+        <div className="max-w-2xl mx-auto mb-6 text-center">
+          <p className="text-sm text-gray-600">
+            Configure uma vez e a IA trabalha sozinha. O SDR Virtual opera de forma contínua e ilimitada.
+          </p>
+        </div>
         {erro && (
           <div className="max-w-2xl mx-auto mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
             {erro}
