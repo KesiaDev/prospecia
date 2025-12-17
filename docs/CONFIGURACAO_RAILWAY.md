@@ -15,20 +15,26 @@ Este guia explica como configurar o PostgreSQL no Railway para o ProspecIA.
 
 1. Clique no serviço PostgreSQL criado
 2. Vá na aba **"Variables"**
-3. Copie o valor de `DATABASE_URL` (ou `POSTGRES_URL`)
-4. O formato será algo como:
+3. **IMPORTANTE**: Use a `DATABASE_PUBLIC_URL` (não a `DATABASE_URL` interna)
+   - A `DATABASE_PUBLIC_URL` funciona de qualquer lugar
+   - A `DATABASE_URL` interna (`postgres.railway.internal`) só funciona se os serviços estiverem conectados
+4. Copie o valor de `DATABASE_PUBLIC_URL`
+5. O formato será algo como:
    ```
-   postgresql://postgres:senha@host:porta/railway
+   postgresql://postgres:senha@yamabiko.proxy.rlwy.net:27680/railway
    ```
 
 ### 3. Configurar DATABASE_URL no Serviço da Aplicação
 
 1. Vá para o serviço da sua aplicação Next.js
 2. Clique em **"Variables"**
-3. Adicione a variável:
+3. Adicione ou edite a variável:
    - **Nome**: `DATABASE_URL`
-   - **Valor**: Cole a URL copiada do PostgreSQL
+   - **Valor**: Cole a `DATABASE_PUBLIC_URL` copiada do PostgreSQL
+   - ⚠️ **NÃO use** a `DATABASE_URL` interna (`postgres.railway.internal`)
+   - ✅ **USE** a `DATABASE_PUBLIC_URL` (com `proxy.rlwy.net` ou similar)
 4. Salve
+5. O Railway fará redeploy automaticamente
 
 ### 4. Executar Migrations (Criar Tabelas)
 
@@ -96,13 +102,16 @@ E configure no Railway para executar `db:deploy` após o build.
 ### Erro: "Erro de conexão com o banco de dados"
 
 **Possíveis causas**:
-1. PostgreSQL não está rodando
-2. `DATABASE_URL` está incorreta
-3. Firewall bloqueando conexão
+1. Usando `DATABASE_URL` interna (`postgres.railway.internal`) ao invés da pública
+2. PostgreSQL não está rodando
+3. `DATABASE_URL` está incorreta
+4. Firewall bloqueando conexão
 
 **Solução**:
+- ✅ **USE `DATABASE_PUBLIC_URL`** do serviço PostgreSQL (não a `DATABASE_URL` interna)
+- A URL pública tem formato: `postgresql://...@*.proxy.rlwy.net:porta/railway`
+- A URL interna tem formato: `postgresql://...@postgres.railway.internal:5432/railway` (NÃO USE)
 - Verifique se o serviço PostgreSQL está ativo
-- Verifique se a `DATABASE_URL` está correta
 - Certifique-se de que ambos os serviços estão no mesmo projeto Railway
 
 ### Erro: "Tabelas do banco de dados não foram criadas"
