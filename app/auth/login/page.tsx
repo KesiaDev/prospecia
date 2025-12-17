@@ -45,24 +45,10 @@ export default function LoginPage() {
         return
       }
 
-      // Verifica se o onboarding foi completado através da sessão
-      // O middleware vai redirecionar automaticamente se necessário
-      // Mas vamos verificar aqui também para melhor UX
-      try {
-        const sessionResponse = await fetch("/api/auth/session")
-        const session = await sessionResponse.json()
-        
-        if (session?.user?.onboardingCompleto) {
-          router.push("/dashboard")
-        } else {
-          router.push("/onboarding")
-        }
-        router.refresh()
-      } catch (error) {
-        // Em caso de erro ao verificar sessão, deixa o middleware lidar
-        router.push("/onboarding")
-        router.refresh()
-      }
+      // Login bem-sucedido - redireciona diretamente
+      // O middleware vai verificar onboarding e redirecionar se necessário
+      // Usa window.location para garantir redirecionamento completo
+      window.location.href = "/onboarding"
     } catch (error) {
       setErro("Erro ao fazer login. Tente novamente.")
       setLoading(false)
